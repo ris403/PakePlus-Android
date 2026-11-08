@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2E9DC">
+<title>瓶中信</title>
+<style>
+/* =========================================================
+   1. 主题配色（在设置页可切换）
+   ========================================================= */
+:root{
+  --shadow: 0 2px 12px rgba(0,0,0,.07);
+}
+body[data-theme="warm"]{
+  --bg:#F2E9DC; --bg-soft:#E7DAC6; --card:#FFFCF6; --text:#3B342C;
+  --dim:#8A7F72; --accent:#A9744F; --line:#DDD0BB; --shelf:#C9B294;
+}
+body[data-theme="night"]{
+  --bg:#1A1D24; --bg-soft:#232730; --card:#262B34; --text:#E4E0D8;
+  --dim:#8B93A0; --accent:#7FA8D6; --line:#343B47; --shelf:#3A4150;
+}
+body[data-theme="mint"]{
+  --bg:#E8F3EC; --bg-soft:#D9EAE0; --card:#FAFFFC; --text:#24382E;
+  --dim:#6E8A7C; --accent:#3F8F6B; --line:#CDE2D6; --shelf:#A8C7B7;
+}
+body[data-theme="sakura"]{
+  --bg:#FBEDEF; --bg-soft:#F5DDE2; --card:#FFFAFB; --text:#432C31;
+  --dim:#9A7C84; --accent:#C96A82; --line:#EFD3DA; --shelf:#E2B8C2;
+}
+body[data-theme="ocean"]{
+  --bg:#E7EFF6; --bg-soft:#D6E3EF; --card:#FBFDFF; --text:#22303D;
+  --dim:#748B9E; --accent:#3D7EA6; --line:#CFDFEC; --shelf:#A9C2D6;
+}
+
+/* =========================================================
+   2. 基础重置
+   ========================================================= */
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{
+  margin:0; padding:0; height:100%; overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  background:var(--bg); color:var(--text);
+  transition:background .3s,color .3s;
+  user-select:none; -webkit-user-select:none;
+}
+input,textarea{ user-select:text; -webkit-user-select:text; font-family:inherit; }
+
+/* =========================================================
+   3. 页面容器
+   ========================================================= */
+.view{ position:fixed; inset:0; display:none; flex-direction:column; }
+.view.active{ display:flex; }
+
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 6px; flex:0 0 auto;
+}
+.topbar .title{ font-size:15px; letter-spacing:3px; color:var(--dim); font-weight:500; }
+.icon-btn{
+  width:36px; height:36px; border:none; border-radius:12px; background:transparent;
+  color:var(--dim); font-size:18px; cursor:pointer; line-height:1;
+}
+.icon-btn:active{ background:var(--bg-soft); }
+.back-btn{
+  width:36px; height:36px; border:none; background:transparent;
+  color:var(--text); font-size:26px; line-height:1; cursor:pointer; padding:0;
+}
+
+/* =========================================================
+   4. 主界面 —— 架子
+   ========================================================= */
+.shelf-area{ padding:0 16px; flex:0 0 auto; }
+.shelf-scroll{
+  display:flex; align-items:flex-end; gap:12px;
+  overflow-x:auto; overflow-y:hidden;
+  padding:10px 2px 0; min-height:112px;
+  scrollbar-width:none;
+}
+.shelf-scroll::-webkit-scrollbar{ display:none; }
+.shelf-board{
+  height:9px; border-radius:5px; margin:0 -2px;
+  background:var(--shelf);
+  box-shadow:0 3px 7px rgba(0,0,0,.10);
+}
+.shelf-empty{
+  color:var(--dim); font-size:13px; opacity:.65;
+  display:flex; align-items:center; height:100px; padding-left:4px;
+}
+.vessel{
+  flex:0 0 auto; cursor:pointer; position:relative;
+  transition:transform .12s ease;
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.13));
+}
+.vessel:active{ transform:scale(.92); }
+.vessel-new{ animation:pop .38s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop{
+  0%{ transform:scale(.2) translateY(24px); opacity:0; }
+  100%{ transform:scale(1) translateY(0); opacity:1; }
+}
+
+/* =========================================================
+   5. 主界面 —— 输入区
+   ========================================================= */
+.composer{
+  flex:1; min-height:0; display:flex; flex-direction:column;
+  padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+}
+#draft{
+  flex:1; min-height:0; width:100%;
+  resize:none; border:none; outline:none;
+  background:var(--card); border-radius:18px; padding:18px;
+  font-size:16px; line-height:1.8; color:var(--text);
+  box-shadow:var(--shadow);
+  transition:background .3s;
+}
+#draft::placeholder{ color:var(--dim); opacity:.55; }
+.composer-bar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-top:12px; gap:12px;
+}
+.counter{ font-size:12px; color:var(--dim); letter-spacing:1px; }
+
+/* =========================================================
+   6. 按钮
+   ========================================================= */
+.btn{
+  border:none; border-radius:13px; padding:12px 24px;
+  font-size:15px; font-family:inherit; cursor:pointer;
+  transition:transform .1s,opacity .15s;
+}
+.btn:active{ transform:scale(.96); }
+.btn.primary{ background:var(--accent); color:#fff; }
+.btn.ghost{ background:var(--bg-soft); color:var(--text); }
+.btn.danger{ background:#C0554B; color:#fff; }
+.btn:disabled{ opacity:.45; }
+
+/* =========================================================
+   7. 底部弹层
+   ========================================================= */
+.sheet{ position:fixed; inset:0; z-index:200; display:none; }
+.sheet.open{ display:block; }
+.sheet .mask{
+  position:absolute; inset:0; background:rgba(0,0,0,.38);
+  animation:fadeIn .18s ease;
+}
+.sheet .panel{
+  position:absolute; left:0; right:0; bottom:0;
+  background:var(--card); color:var(--text);
+  border-radius:22px 22px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+  max-height:84vh; overflow-y:auto;
+  animation:slideUp .24s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes slideUp{ from{ transform:translateY(100%); } to{ transform:translateY(0); } }
+@keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+.sheet-head{ font-size:16px; font-weight:600; margin-bottom:14px; letter-spacing:1px; }
+.sheet-label{ font-size:12px; color:var(--dim); margin:16px 0 8px; letter-spacing:1px; }
+.sheet-label:first-child{ margin-top:0; }
+
+/* 形状 / 颜色 选择行 */
+.pick-row{ display:flex; gap:10px; flex-wrap:wrap; }
+.shape-pick{
+  width:62px; height:88px; border-radius:14px; border:2px solid transparent;
+  background:var(--bg-soft); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:.15s; padding:4px;
+}
+.shape-pick.sel{ border-color:var(--accent); background:var(--card); }
+.color-pick{
+  width:38px; height:38px; border-radius:50%; cursor:pointer;
+  border:3px solid transparent; transition:.15s; position:relative;
+}
+.color-pick.sel{ border-color:var(--text); transform:scale(1.08); }
+
+.sheet-input{
+  width:100%; border:1.5px solid var(--line); background:var(--bg);
+  border-radius:12px; padding:12px 14px; font-size:15px;
+  color:var(--text); outline:none;
+}
+.sheet-input:focus{ border-color:var(--accent); }
+.sheet-actions{ display:flex; gap:10px; margin-top:22px; }
+.sheet-actions .btn{ flex:1; }
+
+/* 长按操作菜单 */
+.action-btn{
+  display:block; width:100%; text-align:left;
+  padding:15px 16px; border:none; background:var(--bg-soft);
+  border-radius:13px; margin-bottom:9px;
+  font-size:15px; color:var(--text); font-family:inherit; cursor:pointer;
+}
+.action-btn:active{ opacity:.7; }
+.action-btn.danger{ color:#C0554B; }
+
+/* =========================================================
+   8. 归档页
+   ========================================================= */
+.page-body{
+  flex:1; overflow-y:auto; padding:8px 16px calc(40px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+.arc-grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+  gap:12px;
+}
+.arc-item{
+  background:var(--card); border-radius:16px; padding:16px 10px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  box-shadow:var(--shadow); cursor:pointer; transition:transform .1s;
+}
+.arc-item:active{ transform:scale(.96); }
+.arc-note{
+  font-size:13px; text-align:center; line-height:1.4; word-break:break-all;
+  max-height:2.8em; overflow:hidden;
+}
+.arc-time{ font-size:11px; color:var(--dim); letter-spacing:.5px; }
+.empty-tip{
+  text-align:center; color:var(--dim); font-size:13px; padding:60px 0; opacity:.7;
+}
+
+/* =========================================================
+   9. 设置页
+   ========================================================= */
+.sec-title{
+  font-size:12px; color:var(--dim); letter-spacing:2px;
+  margin:22px 0 9px 4px;
+}
+.card{
+  background:var(--card); border-radius:16px; padding:6px 16px;
+  box-shadow:var(--shadow);
+}
+.card + .card{ margin-top:10px; }
+.opt{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 0; font-size:15px; gap:12px;
+  border-bottom:1px solid var(--line);
+}
+.opt:last-child{ border-bottom:none; }
+.opt .dim{ font-size:12px; color:var(--dim); display:block; margin-top:2px; }
+.opt input[type=radio]{ width:20px; height:20px; accent-color:var(--accent); }
+.opt input[type=checkbox]{
+  width:44px; height:26px; appearance:none; -webkit-appearance:none;
+  background:var(--line); border-radius:13px; position:relative;
+  cursor:pointer; transition:background .2s; flex:0 0 auto;
+}
+.opt input[type=checkbox]::after{
+  content:''; position:absolute; top:3px; left:3px; width:20px; height:20px;
+  background:#fff; border-radius:50%; transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.opt input[type=checkbox]:checked{ background:var(--accent); }
+.opt input[type=checkbox]:checked::after{ transform:translateX(18px); }
+.opt input[type=checkbox]:disabled{ opacity:.5; }
+
+.theme-row{ display:flex; gap:12px; padding:14px 0; flex-wrap:wrap; }
+.theme-chip{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; font-size:11px; color:var(--dim);
+}
+.theme-dots{ display:flex; border-radius:12px; overflow:hidden; border:2px solid transparent; }
+.theme-chip.sel .theme-dots{ border-color:var(--accent); }
+.theme-dots i{ width:16px; height:34px; display:block; }
+
+.days-row{ display:flex; align-items:center; gap:8px; }
+.days-row input{
+  width:70px; padding:8px 10px; border-radius:10px;
+  border:1.5px solid var(--line); background:var(--bg);
+  color:var(--text); font-size:15px; text-align:center; outline:none;
+}
+.quick-days{ display:flex; gap:8px; padding:0 0 14px; flex-wrap:wrap; }
+.quick-days button{
+  border:1.5px solid var(--line); background:transparent; color:var(--dim);
+  border-radius:9px; padding:6px 12px; font-size:13px; font-family:inherit; cursor:pointer;
+}
+.quick-days button.sel{ border-color:var(--accent); color:var(--accent); }
+.hint{ font-size:12px; color:var(--dim); padding:0 0 14px; line-height:1.6; }
+.entry-card{
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--card); border-radius:16px; padding:18px 18px;
+  box-shadow:var(--shadow); cursor:pointer;
+}
+.entry-card:active{ opacity:.8; }
+.entry-card .card-title{ font-size:15px; }
+.entry-card .card-sub{ font-size:12px; color:var(--dim); margin-top:3px; }
+.chev{ font-size:22px; color:var(--dim); }
+.danger-btn{
+  width:100%; padding:15px 0; margin:14px 0; border:none; border-radius:13px;
+  background:transparent; color:#C0554B; font-size:15px;
+  font-family:inherit; cursor:pointer;
+}
+
+/* =========================================================
+   10. 锁屏
+   ========================================================= */
+#lockView{ justify-content:center; align-items:center; }
+.lock-box{
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  padding:0 40px; width:100%; max-width:360px;
+}
+.lock-icon{ font-size:34px; opacity:.7; }
+.lock-title{ font-size:20px; letter-spacing:6px; }
+.lock-sub{ font-size:13px; color:var(--dim); margin-bottom:6px; }
+#lockInput{
+  width:100%; padding:14px 16px; border-radius:14px; text-align:center;
+  border:1.5px solid var(--line); background:var(--card);
+  font-size:17px; letter-spacing:4px; color:var(--text); outline:none;
+}
+#lockInput:focus{ border-color:var(--accent); }
+#lockBtn{ width:100%; }
+.err{ color:#C0554B; font-size:13px; height:18px; }
+
+/* =========================================================
+   11. 查看器
+   ========================================================= */
+.viewer-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+.viewer-note{ font-size:16px; font-weight:600; margin-top:6px; text-align:center; }
+.viewer-time{ font-size:12px; color:var(--dim); letter-spacing:1px; }
+.reveal-text{
+  margin-top:16px; width:100%; padding:16px; border-radius:14px;
+  background:var(--bg); font-size:15px; line-height:1.85;
+  white-space:pre-wrap; word-break:break-word;
+  display:none; user-select:text; -webkit-user-select:text;
+  max-height:46vh; overflow-y:auto;
+}
+.reveal-text.show{ display:block; }
+
+/* =========================================================
+   12. Toast
+   ========================================================= */
+.toast{
+  position:fixed; left:50%; bottom:90px; transform:translate(-50%,14px);
+  background:rgba(0,0,0,.78); color:#fff; font-size:13px;
+  padding:10px 20px; border-radius:20px; opacity:0;
+  transition:.25s; pointer-events:none; z-index:999; white-space:nowrap;
+}
+.toast.show{ opacity:1; transform:translate(-50%,0); }
+</style>
+</head>
+
+<body data-theme="warm">
+
+<!-- =======================================================
+     锁屏
+     ======================================================= -->
+<div id="lockView" class="view">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">瓶中信</div>
+    <div class="lock-sub">输入密码</div>
+    <input id="lockInput" type="password" inputmode="numeric" autocomplete="off" placeholder="····">
+    <div class="err" id="lockErr"></div>
+    <button class="btn primary" id="lockBtn" style="width:100%">进 入</button>
+  </div>
+</div>
+
+<!-- =======================================================
+     主界面
+     ======================================================= -->
+<div id="mainView" class="view">
+  <div class="topbar">
+    <div class="title">今 日</div>
+    <!-- 右下角留了个齿轮，方便桌面端进入设置；手机上也可以右滑屏幕进入 -->
+    <button class="icon-btn" id="toSettings">⚙</button>
+  </div>
+
+  <div class="shelf-area">
+    <div class="shelf-scroll" id="shelfScroll"></div>
+    <div class="shelf-board"></div>
+  </div>
+
+  <div class="composer">
+    <textarea id="draft" placeholder="写点什么…只有你自己能看到"></textarea>
+    <div class="composer-bar">
+      <span class="counter" id="charCount">0</span>
+      <button class="btn primary" id="packBtn">封 存</button>
+    </div>
+  </div>
+</div>
+
+<!-- =======================================================
+     归档页（过往的容器）
+     ======================================================= -->
+<div id="archiveView" class="view">
+  <div class="topbar">
+    <button class="back-btn" id="archiveBack">‹</button>
+    <div class="title">过 往</div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="page-body">
+    <div class="arc-grid" id="archiveGrid"></div>
+  </div>
+</div>
+
+<!-- =======================================================
+     设置页
+     ======================================================= -->
+<div id="settingsView" class="view">
+  <div class="topbar">
+    <button class="back-btn" id="settingsBack">‹</button>
+    <div class="title">设 置</div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="page-body">
+
+    <!-- 归档入口 -->
+    <div class="entry-card" id="archiveEntry">
+      <div>
+        <div class="card-title">过往的容器</div>
+        <div class="card-sub" id="archiveCount">0 个</div>
+      </div>
+      <div class="chev">›</div>
+    </div>
+
+    <!-- 配色 -->
+    <div class="sec-title">配 色</div>
+    <div class="card">
+      <div class="theme-row" id="themeRow"></div>
+    </div>
+
+    <!-- 收藏形式 -->
+    <div class="sec-title">收 藏 形 式</div>
+    <div class="card">
+      <label class="opt">
+        <span>默认保留<span class="dim">长按容器可单独删除</span></span>
+        <input type="radio" name="cmode" value="keep">
+      </label>
+      <label class="opt">
+        <span>默认删除<span class="dim">长按容器可单独保留</span></span>
+        <input type="radio" name="cmode" value="delete">
+      </label>
+    </div>
+
+    <!-- 自动删除 -->
+    <div class="sec-title">自 动 删 除</div>
+    <div class="card">
+      <label class="opt">
+        <span>开启自动删除<span class="dim">到期后永久移除，无回收站</span></span>
+        <input type="checkbox" id="autoDelSwitch">
+      </label>
+      <div class="opt" id="keepDaysRow">
+        <span>保留时间</span>
+        <div class="days-row">
+          <input type="number" id="keepDays" min="1" max="3650" value="30">
+          <span style="color:var(--dim);font-size:14px">天</span>
+        </div>
+      </div>
+      <div class="quick-days" id="quickDays">
+        <button data-d="1">1 天</button>
+        <button data-d="7">7 天</button>
+        <button data-d="30">30 天</button>
+        <button data-d="90">90 天</button>
+        <button data-d="365">1 年</button>
+      </div>
+      <div class="hint" id="autoDelHint"></div>
+    </div>
+
+    <!-- 密码 -->
+    <div class="sec-title">应 用 密 码</div>
+    <div class="card">
+      <label class="opt">
+        <span>启动时需要密码<span class="dim">密码仅保存在本机</span></span>
+        <input type="checkbox" id="pwdSwitch">
+      </label>
+    </div>
+
+    <!-- 危险操作 -->
+    <div class="sec-title">危 险 区 域</div>
+    <div class="card">
+      <button class="danger-btn" id="wipeAll">永久删除全部内容</button>
+    </div>
+
+    <div class="hint" style="text-align:center;padding-top:10px">
+      所有数据仅保存在本机，不会上传任何服务器
+    </div>
+  </div>
+</div>
+
+<!-- =======================================================
+     封装弹层
+     ======================================================= -->
+<div id="packSheet" class="sheet">
+  <div class="mask" data-close></div>
+  <div class="panel">
+    <div class="sheet-head">封 存</div>
+
+    <div class="sheet-label">容器形状</div>
+    <div class="pick-row" id="shapeRow"></div>
+
+    <div class="sheet-label">容器颜色</div>
+    <div class="pick-row" id="colorRow"></div>
+
+    <div class="sheet-label">备注（可选）</div>
+    <input id="noteInput" class="sheet-input" maxlength="30" placeholder="给这个容器起个名字…">
+
+    <div class="sheet-actions">
+      <button class="btn ghost" data-close>取消</button>
+      <button class="btn primary" id="packConfirm">投进架子</button>
+    </div>
+  </div>
+</div>
+
+<!-- =======================================================
+     长按操作菜单
+     ======================================================= -->
+<div id="actionSheet" class="sheet">
+  <div class="mask" data-close></div>
+  <div class="panel">
+    <div class="sheet-head">这个容器</div>
+    <div id="asBody"></div>
+  </div>
+</div>
+
+<!-- =======================================================
+     查看器
+     ======================================================= -->
+<div id="viewerSheet" class="sheet">
+  <div class="mask" data-close></div>
+  <div class="panel">
+    <div class="viewer-wrap" id="viewerBody"></div>
+  </div>
+</div>
+
+<!-- =======================================================
+     通用对话框（输入 / 确认）
+     ======================================================= -->
+<div id="dlg" class="sheet">
+  <div class="mask" data-close></div>
+  <div class="panel">
+    <div class="sheet-head" id="dlgTitle"></div>
+    <div class="hint" id="dlgMsg" style="padding:0 0 14px"></div>
+    <input id="dlgInput" class="sheet-input" type="text">
+    <div class="sheet-actions">
+      <button class="btn ghost" id="dlgCancel">取消</button>
+      <button class="btn primary" id="dlgOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   瓶中信  ——  本地私密日记
+   -------------------------------------------------------------------------
+   所有数据保存在 localStorage，键名 bottle_diary_v1
+   数据做了简单的位运算混淆（仅防止随手翻看，不是真正的加密）
+   如需真正加密，可接入 Web Crypto API 或第三方库
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   A. 工具函数
+   ------------------------------------------------------------------------- */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/** 生成唯一 id */
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+/** 日期键：用于判断“是不是同一天” */
+function dayKey(ts){
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+
+/** 格式化时间 */
+function fmtTime(ts){
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** HTML 转义（用于把备注安全插进 innerHTML） */
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+  ));
+}
+
+/** 颜色明暗调整：p>0 变亮，p<0 变暗 */
+function shade(hex, p){
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  if (p > 0){
+    r += (255 - r) * p / 100;
+    g += (255 - g) * p / 100;
+    b += (255 - b) * p / 100;
+  } else {
+    r *= (1 + p / 100);
+    g *= (1 + p / 100);
+    b *= (1 + p / 100);
+  }
+  const to = v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0');
+  return '#' + to(r) + to(g) + to(b);
+}
+
+/** 密码哈希（FNV-1a，仅用于本地校验，不是加密） */
+function hashPassword(pw){
+  let h = 0x811c9dc5;
+  const s = 'bottle::' + pw;
+  for (let i = 0; i < s.length; i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
+}
+
+/** Toast 提示 */
+let toastTimer;
+function toast(msg){
+  let el = document.getElementById('toast');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1700);
+}
+
+/* -------------------------------------------------------------------------
+   B. 存储层
+   ------------------------------------------------------------------------- */
+const STORE_KEY = 'bottle_diary_v1';
+const OBF_KEY   = new TextEncoder().encode('bottle-diary-local-only');
+
+/** 混淆写出（把 JSON 转成混淆后的 base64） */
+function encodeData(obj){
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++){
+    out[i] = bytes[i] ^ OBF_KEY[i % OBF_KEY.length];
+  }
+  let bin = '';
+  out.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+
+/** 混淆读入 */
+function decodeData(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const out = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++){
+    out[i] = bytes[i] ^ OBF_KEY[i % OBF_KEY.length];
+  }
+  return JSON.parse(new TextDecoder().decode(out));
+}
+
+/** 默认数据结构 */
+function defaultData(){
+  return {
+    settings: {
+      password: '',          // 空字符串 = 未设置密码；否则是哈希值
+      theme: 'warm',         // 配色主题
+      collectionMode: 'keep',// keep=默认保留 | delete=默认删除
+      autoDelete: false,     // 自动删除总开关
+      autoDeleteDays: 30     // 自动删除保留天数
+    },
+    items: [],               // 所有容器
+    draft: '',               // 未封存的草稿
+    lastOpenDay: ''          // 上次打开的日期（用于跨天判断）
+  };
+}
+
+let data = defaultData();
+
+/** 载入数据 */
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return defaultData();
+    const d = decodeData(raw);
+    const base = defaultData();
+    base.settings = Object.assign(base.settings, d.settings || {});
+    base.items    = Array.isArray(d.items) ? d.items : [];
+    base.draft    = typeof d.draft === 'string' ? d.draft : '';
+    base.lastOpenDay = d.lastOpenDay || '';
+    return base;
+  } catch(e){
+    console.warn('数据读取失败，使用空数据', e);
+    return defaultData();
+  }
+}
+
+/** 保存数据 */
+function saveData(){
+  try{
+    localStorage.setItem(STORE_KEY, encodeData(data));
+  } catch(e){
+    console.error('保存失败', e);
+    toast('保存失败，存储空间可能已满');
+  }
+}
+
+/* -------------------------------------------------------------------------
+   C. 每日滚动 + 自动删除
+   ------------------------------------------------------------------------- */
+
+/**
+ * 跨天处理：
+ * 1) 把不是今天封存的、还在架子上的容器，移进归档
+ * 2) 清空未封存的草稿
+ *
+ * 如果不想清空草稿，把下面 if(data.lastOpenDay...) 那一段删掉即可
+ */
+function checkRollover(){
+  const today = dayKey(Date.now());
+  let changed = false;
+
+  data.items.forEach(it => {
+    if (it.onShelf && dayKey(it.createdAt) !== today){
+      it.onShelf = false;
+      changed = true;
+    }
+  });
+
+  // —— 清空未封存的文字（跨天时）——
+  if (data.lastOpenDay && data.lastOpenDay !== today && data.draft && data.draft.trim()){
+    data.draft = '';
+    changed = true;
+  }
+
+  data.lastOpenDay = today;
+  if (changed) saveData();
+  return changed;
+}
+
+/**
+ * 清理过期容器（永久删除，无回收站）
+ * 只有当 autoDelete 开关打开时才会执行
+ */
+function purgeExpired(){
+  if (!data.settings.autoDelete) return false;
+  const now = Date.now();
+  const before = data.items.length;
+  data.items = data.items.filter(it => it.expireAt == null || it.expireAt > now);
+  if (data.items.length !== before){
+    saveData();
+    return true;
+  }
+  return false;
+}
+
+/* -------------------------------------------------------------------------
+   D. 容器图形（SVG）
+   ------------------------------------------------------------------------- */
+const SHAPES = [
+  { id: 'bottle',   name: '瓶子' },
+  { id: 'box',      name: '盒子' },
+  { id: 'jar',      name: '罐子' },
+  { id: 'envelope', name: '信封' }
+];
+
+const COLORS = [
+  '#C9705B', '#D9A03C', '#7FA87F', '#5B8FB9',
+  '#8E7CC3', '#C77FA0', '#7A6A5A', '#4E4E5E'
+];
+
+/** 根据形状 + 颜色生成 SVG */
+function vesselSVG(shape, color, w){
+  const c    = color;
+  const dark = shade(c, -28);
+  const light= shade(c,  26);
+  const sw = w || 56;
+  const sh = Math.round(sw * 88 / 60);
+
+  let inner = '';
+  if (shape === 'bottle'){
+    inner = `
+      <rect x="23" y="3" width="14" height="11" rx="2.5" fill="${dark}"/>
+      <rect x="25.5" y="13" width="9" height="13" fill="${c}"/>
+      <path d="M10 34 Q10 26 18 26 L42 26 Q50 26 50 34 L50 74 Q50 84 40 84 L20 84 Q10 84 10 74 Z" fill="${c}"/>
+      <rect x="17" y="44" width="5" height="22" rx="2.5" fill="#fff" opacity=".28"/>`;
+  } else if (shape === 'box'){
+    inner = `
+      <rect x="12" y="24" width="36" height="58" rx="3" fill="${c}"/>
+      <rect x="7" y="14" width="46" height="12" rx="3" fill="${light}"/>
+      <rect x="26" y="14" width="8" height="68" fill="${dark}" opacity=".8"/>`;
+  } else if (shape === 'jar'){
+    inner = `
+      <rect x="15" y="16" width="30" height="9" rx="3" fill="${dark}"/>
+      <path d="M12 30 Q12 25 17 25 L43 25 Q48 25 48 30 L48 70 Q48 84 34 84 L26 84 Q12 84 12 70 Z" fill="${c}"/>
+      <rect x="20" y="38" width="5" height="24" rx="2.5" fill="#fff" opacity=".25"/>`;
+  } else { // envelope
+    inner = `
+      <rect x="8" y="26" width="44" height="42" rx="4" fill="${c}"/>
+      <path d="M8 28 L30 46 L52 28" fill="none" stroke="${dark}" stroke-width="2.6" stroke-linejoin="round"/>
+      <rect x="8" y="26" width="44" height="42" rx="4" fill="none" stroke="${dark}" stroke-width="1.2" opacity=".45"/>`;
+  }
+
+  return `<svg viewBox="0 0 60 88" width="${sw}" height="${sh}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+}
+
+/* -------------------------------------------------------------------------
+   E. 弹层控制
+   ------------------------------------------------------------------------- */
+function openSheet(sel){ $(sel).classList.add('open'); }
+function closeSheet(sel){ $(sel).classList.remove('open'); }
+
+/** 点遮罩关闭所有弹层 */
+document.addEventListener('click', e => {
+  if (e.target.matches('.sheet .mask, .sheet [data-close]')){
+    e.target.closest('.sheet').classList.remove('open');
+  }
+});
+
+/**
+ * 通用对话框
+ * @returns Promise<null|string|true>  取消返回 null
+ */
+function askDialog(opt){
+  return new Promise(resolve => {
+    const titleEl = $('#dlgTitle');
+    const msgEl   = $('#dlgMsg');
+    const input   = $('#dlgInput');
+    const okBtn   = $('#dlgOk');
+    const cancelBtn = $('#dlgCancel');
+
+    titleEl.textContent = opt.title || '';
+    msgEl.textContent   = opt.message || '';
+    msgEl.style.display = opt.message ? 'block' : 'none';
+
+    if (opt.input){
+      input.style.display = 'block';
+      input.type = opt.password ? 'password' : 'text';
+      input.value = opt.value || '';
+      input.placeholder = opt.placeholder || '';
+      setTimeout(() => input.focus(), 120);
+    } else {
+      input.style.display = 'none';
+    }
+
+    okBtn.textContent = opt.okText || '确定';
+    okBtn.className = 'btn ' + (opt.danger ? 'danger' : 'primary');
+
+    openSheet('#dlg');
+
+    const done = val => {
+      closeSheet('#dlg');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      input.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onOk     = () => done(opt.input ? input.value : true);
+    const onCancel = () => done(null);
+    const onKey    = e => { if (e.key === 'Enter') onOk(); };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKey);
+  });
+}
+
+/* -------------------------------------------------------------------------
+   F. 长按识别
+   ------------------------------------------------------------------------- */
+let suppressClick = false;   // 长按后抑制一次点击
+
+function attachLongPress(el, cb, ms){
+  ms = ms || 520;
+  let timer = null, sx = 0, sy = 0, moved = false;
+
+  const start = e => {
+    moved = false;
+    const t = e.touches ? e.touches[0] : e;
+    sx = t.clientX; sy = t.clientY;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (moved) return;
+      if (navigator.vibrate) navigator.vibrate(15);
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 600);
+      cb();
+    }, ms);
+  };
+  const move = e => {
+    const t = e.touches ? e.touches[0] : e;
+    if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10){
+      moved = true;
+      clearTimeout(timer);
+    }
+  };
+  const end = () => clearTimeout(timer);
+
+  el.addEventListener('touchstart', start, { passive: true });
+  el.addEventListener('touchmove',  move,  { passive: true });
+  el.addEventListener('touchend',   end);
+  el.addEventListener('touchcancel',end);
+
+  el.addEventListener('mousedown', start);
+  el.addEventListener('mousemove', move);
+  el.addEventListener('mouseup',   end);
+  el.addEventListener('mouseleave',end);
+}
+
+/* -------------------------------------------------------------------------
+   G. 渲染
+   ------------------------------------------------------------------------- */
+let justAddedId = null;   // 刚封存的容器，用于播放出现动画
+
+/* ---------- 架子（今日容器） ---------- */
+function renderShelf(){
+  const today = dayKey(Date.now());
+  const list = data.items
+    .filter(it => it.onShelf && dayKey(it.createdAt) === today)
+    .sort((a, b) => a.createdAt - b.createdAt);
+
+  const box = $('#shelfScroll');
+  box.innerHTML = '';
+
+  if (!list.length){
+    box.innerHTML = '<div class="shelf-empty">今天还没有封存任何东西</div>';
+    justAddedId = null;
+    return;
+  }
+
+  list.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'vessel' + (it.id === justAddedId ? ' vessel-new' : '');
+    el.innerHTML = vesselSVG(it.shape, it.color, 56);
+    el.dataset.id = it.id;
+
+    attachLongPress(el, () => openActionSheet(it.id));
+    el.addEventListener('click', () => {
+      if (suppressClick) return;
+      openViewer(it.id);
+    });
+
+    box.appendChild(el);
+  });
+
+  justAddedId = null;
+}
+
+/* ---------- 归档列表 ---------- */
+function renderArchive(){
+  const grid = $('#archiveGrid');
+  const list = data.items.slice().sort((a, b) => b.createdAt - a.createdAt);
+
+  $('#archiveCount').textContent = list.length + ' 个';
+
+  if (!list.length){
+    grid.innerHTML = '<div class="empty-tip">还没有任何容器</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  list.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'arc-item';
+    el.innerHTML = `
+      ${vesselSVG(it.shape, it.color, 52)}
+      <div class="arc-note">${it.note ? escapeHtml(it.note) : '（无备注）'}</div>
+      <div class="arc-time">${fmtTime(it.createdAt)}</div>
+    `;
+    attachLongPress(el, () => openActionSheet(it.id));
+    el.addEventListener('click', () => {
+      if (suppressClick) return;
+      openViewer(it.id);
+    });
+    grid.appendChild(el);
+  });
+}
+
+/* ---------- 设置页 ---------- */
+const THEMES = [
+  { id: 'warm',   name: '暖木', dots: ['#F2E9DC', '#A9744F', '#C9B294'] },
+  { id: 'night',  name: '夜航', dots: ['#1A1D24', '#7FA8D6', '#3A4150'] },
+  { id: 'mint',   name: '薄荷', dots: ['#E8F3EC', '#3F8F6B', '#A8C7B7'] },
+  { id: 'sakura', name: '樱',   dots: ['#FBEDEF', '#C96A82', '#E2B8C2'] },
+  { id: 'ocean',  name: '海',   dots: ['#E7EFF6', '#3D7EA6', '#A9C2D6'] }
+];
+
+function renderSettings(){
+  const s = data.settings;
+
+  /* 配色 */
+  const tr = $('#themeRow');
+  tr.innerHTML = '';
+  THEMES.forEach(t => {
+    const chip = document.createElement('div');
+    chip.className = 'theme-chip' + (s.theme === t.id ? ' sel' : '');
+    chip.innerHTML = `
+      <div class="theme-dots">${t.dots.map(c => `<i style="background:${c}"></i>`).join('')}</div>
+      <span>${t.name}</span>`;
+    chip.onclick = () => {
+      s.theme = t.id;
+      applyTheme();
+      saveData();
+      renderSettings();
+    };
+    tr.appendChild(chip);
+  });
+
+  /* 收藏形式 */
+  $$('input[name="cmode"]').forEach(r => {
+    r.checked = (r.value === s.collectionMode);
+    r.onchange = () => {
+      if (r.value === 'delete'){
+        // 选择「默认删除」时，必须同时开启自动删除并设定天数
+        s.collectionMode = 'delete';
+        s.autoDelete = true;
+        if (!s.autoDeleteDays || s.autoDeleteDays < 1) s.autoDeleteDays = 30;
+        saveData();
+        renderSettings();
+      } else {
+        s.collectionMode = 'keep';
+        saveData();
+        renderSettings();
+      }
+    };
+  });
+
+  /* 自动删除 */
+  const sw = $('#autoDelSwitch');
+  const lockedByDelete = (s.collectionMode === 'delete');
+  sw.checked = s.autoDelete;
+  sw.disabled = lockedByDelete;
+  $('#keepDays').value = s.autoDeleteDays;
+  $('#keepDays').disabled = !s.autoDelete;
+  $('#keepDaysRow').style.opacity = s.autoDelete ? 1 : .45;
+
+  $$('#quickDays button').forEach(b => {
+    const d = Number(b.dataset.d);
+    b.classList.toggle('sel', d === s.autoDeleteDays);
+    b.disabled = !s.autoDelete;
+    b.onclick = () => {
+      s.autoDeleteDays = d;
+      saveData();
+      renderSettings();
+    };
+  });
+
+  $('#keepDays').onchange = e => {
+    let v = parseInt(e.target.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 3650) v = 3650;
+    s.autoDeleteDays = v;
+    saveData();
+    renderSettings();
+  };
+
+  $('#autoDelSwitch').onchange = e => {
+    s.autoDelete = e.target.checked;
+    saveData();
+    renderSettings();
+  };
+
+  $('#autoDelHint').textContent = lockedByDelete
+    ? '「默认删除」模式下必须开启自动删除：新容器会在设定天数后永久消失。长按容器可单独设为保留。'
+    : '开启后，被标记为「自动删除」的容器会在设定天数后永久移除，无法恢复。';
+
+  /* 密码 */
+  $('#pwdSwitch').checked = !!s.password;
+
+  /* 归档数量 */
+  $('#archiveCount').textContent = data.items.length + ' 个';
+}
+
+/* ---------- 主题 ---------- */
+function applyTheme(){
+  document.body.dataset.theme = data.settings.theme;
+}
+
+/* -------------------------------------------------------------------------
+   H. 视图切换
+   ------------------------------------------------------------------------- */
+function showView(id){
+  $$('.view').forEach(v => v.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function showMain(){
+  $('#draft').value = data.draft || '';
+  updateCounter();
+  renderShelf();
+  showView('#mainView');
+}
+
+function openSettings(){
+  renderSettings();
+  showView('#settingsView');
+}
+
+function openArchive(){
+  renderArchive();
+  showView('#archiveView');
+}
+
+function updateCounter(){
+  $('#charCount').textContent = ($('#draft').value.length || 0) + ' 字';
+}
+
+/* -------------------------------------------------------------------------
+   I. 封存流程
+   ------------------------------------------------------------------------- */
+let pendingPack = { shape: 'bottle', color: COLORS[0] };
+
+function openPackSheet(){
+  const text = $('#draft').value.trim();
+  if (!text){
+    toast('先写点什么吧');
+    return;
+  }
+  // 默认随机一个颜色，形状默认瓶子
+  pendingPack = {
+    shape: 'bottle',
+    color: COLORS[Math.floor(Math.random() * COLORS.length)]
+  };
+  renderPackPickers();
+  $('#noteInput').value = '';
+  openSheet('#packSheet');
+}
+
+function renderPackPickers(){
+  /* 形状 */
+  const sr = $('#shapeRow');
+  sr.innerHTML = '';
+  SHAPES.forEach(sp => {
+    const d = document.createElement('div');
+    d.className = 'shape-pick' + (pendingPack.shape === sp.id ? ' sel' : '');
+    d.innerHTML = vesselSVG(sp.id, pendingPack.color, 40);
+    d.onclick = () => {
+      pendingPack.shape = sp.id;
+      renderPackPickers();
+    };
+    sr.appendChild(d);
+  });
+
+  /* 颜色 */
+  const cr = $('#colorRow');
+  cr.innerHTML = '';
+  COLORS.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'color-pick' + (pendingPack.color === c ? ' sel' : '');
+    d.style.background = c;
+    d.onclick = () => {
+      pendingPack.color = c;
+      renderPackPickers();
+    };
+    cr.appendChild(d);
+  });
+}
+
+function confirmPack(){
+  const text = $('#draft').value.trim();
+  if (!text){ closeSheet('#packSheet'); return; }
+
+  const note = $('#noteInput').value.trim();
+  const now  = Date.now();
+  const s    = data.settings;
+
+  // 计算过期时间：只有「默认删除」+ 自动删除开启时才设置
+  let expireAt = null;
+  if (s.collectionMode === 'delete' && s.autoDelete){
+    expireAt = now + s.autoDeleteDays * 86400000;
+  }
+
+  const item = {
+    id: uid(),
+    text: text,
+    note: note,
+    color: pendingPack.color,
+    shape: pendingPack.shape,
+    createdAt: now,
+    onShelf: true,     // 显示在架子上
+    hidden: false,
+    expireAt: expireAt // null = 永久保留
+  };
+
+  data.items.push(item);
+  data.draft = '';
+  $('#draft').value = '';
+  updateCounter();
+  justAddedId = item.id;
+
+  saveData();
+  closeSheet('#packSheet');
+  renderShelf();
+
+  toast(note ? '已封存：' + note : '已封存');
+}
+
+/* -------------------------------------------------------------------------
+   J. 长按操作菜单
+   ------------------------------------------------------------------------- */
+function openActionSheet(id){
+  const it = data.items.find(x => x.id === id);
+  if (!it) return;
+
+  const isAuto = (it.expireAt != null);
+  const body = $('#asBody');
+  body.innerHTML = '';
+
+  const addBtn = (label, cls, fn) => {
+    const b = document.createElement('button');
+    b.className = 'action-btn ' + (cls || '');
+    b.textContent = label;
+    b.onclick = () => {
+      closeSheet('#actionSheet');
+      setTimeout(fn, 160);
+    };
+    body.appendChild(b);
+  };
+
+  /* 1. 修改备注 */
+  addBtn('修改备注', '', async () => {
+    const v = await askDialog({
+      title: '修改备注',
+      input: true,
+      value: it.note || '',
+      placeholder: '留空则清除备注',
+      okText: '保存'
+    });
+    if (v === null) return;
+    it.note = v.trim();
+    saveData();
+    renderArchive();
+    toast('备注已更新');
+  });
+
+  /* 2. 修改颜色 */
+  addBtn('修改颜色', '', () => {
+    openColorPicker(it);
+  });
+
+  /* 3. 保留 / 自动删除 切换 */
+  addBtn(isAuto ? '改为永久保留' : '改为自动删除', '', async () => {
+    if (isAuto){
+      it.expireAt = null;
+      saveData();
+      renderArchive();
+      toast('已设为永久保留');
+    } else {
+      const s = data.settings;
+      if (!s.autoDelete){
+        const ok = await askDialog({
+          title: '自动删除未开启',
+          message: '要现在开启自动删除吗？开启后该容器将在设定天数后永久移除。',
+          okText: '开启'
+        });
+        if (!ok) return;
+        s.autoDelete = true;
+      }
+      const v = await askDialog({
+        title: '自动删除',
+        message: '这个容器将在多少天后永久删除？',
+        input: true,
+        value: String(s.autoDeleteDays || 30),
+        placeholder: '天数',
+        okText: '确定'
+      });
+      if (v === null) return;
+      let d = parseInt(v, 10);
+      if (isNaN(d) || d < 1) d = 1;
+      if (d > 3650) d = 3650;
+      it.expireAt = Date.now() + d * 86400000;
+      saveData();
+      renderArchive();
+      toast(d + ' 天后自动删除');
+    }
+  });
+
+  /* 4. 隐藏（仅架子上的容器） */
+  if (it.onShelf){
+    addBtn('隐藏（收进归档）', '', () => {
+      it.onShelf = false;
+      saveData();
+      renderShelf();
+      renderArchive();
+      toast('已收进归档');
+    });
+  }
+
+  /* 5. 永久删除 */
+  addBtn('永久删除', 'danger', async () => {
+    const ok = await askDialog({
+      title: '永久删除',
+      message: '这个容器会被彻底删除，无法恢复，确定吗？',
+      okText: '删除',
+      danger: true
+    });
+    if (!ok) return;
+    data.items = data.items.filter(x => x.id !== id);
+    saveData();
+    renderShelf();
+    renderArchive();
+    renderSettings();
+    toast('已永久删除');
+  });
+
+  openSheet('#actionSheet');
+}
+
+/* ---------- 改颜色的小弹层（复用封装弹层的样式） ---------- */
+function openColorPicker(it){
+  const cr = $('#colorRow');
+  const sr = $('#shapeRow');
+  // 复用封装弹层，临时切换用途
+  $('#packSheet .sheet-head').textContent = '修改颜色';
+  $('#noteInput').parentElement.style.display = 'none';
+  $('#packConfirm').textContent = '保存';
+
+  pendingPack.shape = it.shape;
+  pendingPack.color = it.color;
+  renderPackPickers();
+  openSheet('#packSheet');
+
+  // 换掉确认按钮的行为
+  const btn = $('#packConfirm');
+  const handler = () => {
+    it.color = pendingPack.color;
+    saveData();
+    renderShelf();
+    renderArchive();
+    closeSheet('#packSheet');
+    toast('颜色已更新');
+    btn.removeEventListener('click', handler);
+    resetPackSheet();
+  };
+  btn.addEventListener('click', handler);
+
+  // 取消时也恢复
+  const cancelHandler = () => {
+    resetPackSheet();
+    btn.removeEventListener('click', handler);
+    document.removeEventListener('click', cancelWatcher, true);
+  };
+  const cancelWatcher = e => {
+    if (e.target.matches('#packSheet .mask, #packSheet [data-close]')){
+      cancelHandler();
+    }
+  };
+  document.addEventListener('click', cancelWatcher, true);
+}
+
+/** 把封装弹层恢复成「封存」用途 */
+function resetPackSheet(){
+  $('#packSheet .sheet-head').textContent = '封 存';
+  $('#noteInput').parentElement.style.display = '';
+  $('#packConfirm').textContent = '投进架子';
+}
+
+/* -------------------------------------------------------------------------
+   K. 查看器
+   ------------------------------------------------------------------------- */
+let viewingId = null;
+
+function openViewer(id){
+  const it = data.items.find(x => x.id === id);
+  if (!it) return;
+  viewingId = id;
+
+  const body = $('#viewerBody');
+  body.innerHTML = `
+    <div>${vesselSVG(it.shape, it.color, 96)}</div>
+    <div class="viewer-note">${it.note ? escapeHtml(it.note) : '（无备注）'}</div>
+    <div class="viewer-time">封存于 ${fmtTime(it.createdAt)}</div>
+    <button class="btn primary" id="revealBtn" style="margin-top:16px;width:100%">显示内容</button>
+    <div class="reveal-text" id="revealText"></div>
+  `;
+
+  openSheet('#viewerSheet');
+
+  $('#revealBtn').onclick = () => {
+    const box = $('#revealText');
+    box.textContent = it.text;
+    box.classList.add('show');
+    $('#revealBtn').style.display = 'none';
+  };
+}
+
+/* -------------------------------------------------------------------------
+   L. 事件绑定
+   ------------------------------------------------------------------------- */
+
+/* ---- 锁屏 ---- */
+function showLock(){
+  showView('#lockView');
+  $('#lockInput').value = '';
+  $('#lockErr').textContent = '';
+  setTimeout(() => $('#lockInput').focus(), 200);
+}
+
+function tryUnlock(){
+  const v = $('#lockInput').value;
+  if (hashPassword(v) === data.settings.password){
+    showMain();
+  } else {
+    $('#lockErr').textContent = '密码不对';
+    $('#lockInput').value = '';
+  }
+}
+
+$('#lockBtn').onclick = tryUnlock;
+$('#lockInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryUnlock();
+});
+
+/* ---- 主界面输入 ---- */
+let draftTimer;
+$('#draft').addEventListener('input', () => {
+  data.draft = $('#draft').value;
+  updateCounter();
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveData, 400);
+});
+
+$('#packBtn').onclick = openPackSheet;
+$('#packConfirm').onclick = confirmPack;
+
+/* ---- 进入设置 ---- */
+$('#toSettings').onclick = openSettings;
+$('#settingsBack').onclick = () => { showMain(); };
+$('#archiveBack').onclick = () => { openSettings(); };
+$('#archiveEntry').onclick = openArchive;
+
+/* ---- 右滑进入设置（在主界面生效） ---- */
+let swipeStartX = 0, swipeStartY = 0, swipeTarget = null;
+document.addEventListener('touchstart', e => {
+  if (!$('#mainView').classList.contains('active')) return;
+  swipeTarget = e.target;
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (!$('#mainView').classList.contains('active')) return;
+  if (swipeTarget && swipeTarget.closest('textarea, .shelf-scroll, .sheet')) return;
+
+  const dx = e.changedTouches[0].clientX - swipeStartX;
+  const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY);
+
+  // 向右滑动超过 90px，且竖直方向没怎么动
+  if (dx > 90 && dy < 60) openSettings();
+}, { passive: true });
+
+/* ---- 密码开关 ---- */
+$('#pwdSwitch').addEventListener('change', async e => {
+  const s = data.settings;
+
+  if (e.target.checked){
+    const pw = await askDialog({
+      title: '设置密码',
+      message: '请输入启动密码（仅保存在本机，忘记无法找回）',
+      input: true,
+      password: true,
+      placeholder: '至少 3 位',
+      okText: '设置'
+    });
+    if (pw === null){ e.target.checked = false; return; }
+    if (pw.length < 3){
+      toast('密码至少 3 位');
+      e.target.checked = false;
+      return;
+    }
+    s.password = hashPassword(pw);
+    saveData();
+    toast('密码已设置，下次启动生效');
+  } else {
+    const pw = await askDialog({
+      title: '关闭密码',
+      message: '请输入当前密码',
+      input: true,
+      password: true,
+      okText: '关闭'
+    });
+    if (pw === null){ e.target.checked = true; return; }
+    if (hashPassword(pw) !== s.password){
+      toast('密码不正确');
+      e.target.checked = true;
+      return;
+    }
+    s.password = '';
+    saveData();
+    toast('密码已关闭');
+  }
+});
+
+/* ---- 清空全部 ---- */
+$('#wipeAll').onclick = async () => {
+  const ok = await askDialog({
+    title: '永久删除全部内容',
+    message: '所有容器和草稿都会被彻底删除，无法恢复。',
+    okText: '全部删除',
+    danger: true
+  });
+  if (!ok) return;
+
+  const ok2 = await askDialog({
+    title: '再确认一次',
+    message: '真的要删除全部内容吗？',
+    okText: '确认删除',
+    danger: true
+  });
+  if (!ok2) return;
+
+  data.items = [];
+  data.draft = '';
+  saveData();
+  $('#draft').value = '';
+  updateCounter();
+  renderShelf();
+  renderArchive();
+  renderSettings();
+  toast('已清空');
+};
+
+/* -------------------------------------------------------------------------
+   M. 启动
+   ------------------------------------------------------------------------- */
+function boot(){
+  data = loadData();
+
+  // 跨天处理 + 过期清理
+  checkRollover();
+  purgeExpired();
+
+  applyTheme();
+  renderShelf();
+  renderArchive();
+  renderSettings();
+
+  // 每隔 60 秒检查一次跨天和过期（防止应用长时间开着）
+  setInterval(() => {
+    const rolled = checkRollover();
+    const purged = purgeExpired();
+    if (rolled || purged){
+      if ($('#mainView').classList.contains('active')){
+        $('#draft').value = data.draft || '';
+        updateCounter();
+      }
+      renderShelf();
+      renderArchive();
+      renderSettings();
+    }
+  }, 60000);
+
+  // 决定显示哪个界面
+  if (data.settings.password){
+    showLock();
+  } else {
+    showMain();
+  }
+}
+
+boot();
+
+/* =========================================================================
+   以下是打包成 App 的提示（不参与运行）
+   -------------------------------------------------------------------------
+   Android（Capacitor）：
+     npm init -y
+     npm i @capacitor/core @capacitor/cli @capacitor/android
+     npx cap init 瓶中信 com.you.bottle --web-dir=www
+     把本文件重命名为 index.html 放进 www/ 目录
+     npx cap add android
+     npx cap sync
+     npx cap open android   → 在 Android Studio 里 Build APK
+   iOS：把 add android 换成 add ios，需要 Mac + Xcode
+   纯手机使用：直接用浏览器打开，选择「添加到主屏幕」即可像 App 一样全屏运行
+   ========================================================================= */
+</script>
+</body>
+</html>
